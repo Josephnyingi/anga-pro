@@ -1,6 +1,4 @@
-<div align="center">
-
-<img src="docs/assets/logo-ochre.svg" width="86" alt="Anga Pro">
+<img src="docs/assets/logo-ochre.svg" width="120" alt="Anga Pro">
 
 # Anga Pro
 
@@ -8,9 +6,7 @@
 
 [Live dashboard](https://anga-pro-drought.pages.dev) · [Methods](docs/METHODS.md) · [Architecture](docs/ARCHITECTURE.md) · [Data schemas](docs/DASHBOARD_SCHEMA.md)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-</div>
+[![License: MIT](https://img.shields.io/badge/License-MIT-96591C.svg)](LICENSE)
 
 <table>
 <tr>
