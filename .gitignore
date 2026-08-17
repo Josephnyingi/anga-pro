@@ -1,0 +1,53 @@
+# Credentials — never commit
+.env
+credentials.env
+*.env
+
+# Data and models — loaded from S3 at runtime
+data/
+models/
+*.parquet
+*.json.model
+*.grib
+*.nc
+*.tif
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temp
+tmp/
+temp/
+
+# Raw boundary download, rebuild with scripts/build_counties_geojson.py
+ken_adm1*.geojson
+
+# codegraph analysis artifacts
+CODEGRAPH*.json
+CODEGRAPH*.md
+
+# Local test scaffolding
+build_tmp/
+
+# Local wrangler state
+.wrangler/
+
+# Submission scaffolding, not part of the product
+docs/DEVPOST.md
+docs/PITCH_SCRIPT.md

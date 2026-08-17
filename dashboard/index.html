@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anga Pro — Drought Forecast Bulletin | Nature Cipher</title>
+<link rel="icon" type="image/png" href="./favicon.png">
+<meta name="description" content="Seasonal drought forecasts for Kenya's ASALs. Satellite indicators are synthesised from atmospheric forecasts, so the model runs three months ahead of any observation.">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{
+  --paper:#EEF1F3; --surface:#FFFFFF; --ink:#12181C; --ink-2:#3A4750;
+  --slate:#5A6872; --hair:#C9D2D7; --hair-2:#DDE4E8;
+  --accent:#0F6E8C; --accent-soft:#0F6E8C1A;
+  --normal:#2E7D63; --watch:#C08A2E; --drought:#B24A2C; --uncovered:#B8C3C9;
+  --gap:#8A97A0; --live:#2E7D63; --offline:#8A97A0;
+  --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0D1317; --surface:#141C21; --ink:#E4EAED; --ink-2:#B4C1C9;
+    --slate:#8A9AA5; --hair:#26333B; --hair-2:#1D272D;
+    --accent:#4FB8D8; --accent-soft:#4FB8D822;
+    --normal:#4FA987; --watch:#D9A84E; --drought:#D9704F; --uncovered:#39474F;
+    --gap:#6B7B85; --live:#4FA987; --offline:#6B7B85;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1317; --surface:#141C21; --ink:#E4EAED; --ink-2:#B4C1C9;
+  --slate:#8A9AA5; --hair:#26333B; --hair-2:#1D272D;
+  --accent:#4FB8D8; --accent-soft:#4FB8D822;
+  --normal:#4FA987; --watch:#D9A84E; --drought:#D9704F; --uncovered:#39474F;
+  --gap:#6B7B85; --live:#4FA987; --offline:#6B7B85;
+}
+:root[data-theme="light"]{
+  --paper:#EEF1F3; --surface:#FFFFFF; --ink:#12181C; --ink-2:#3A4750;
+  --slate:#5A6872; --hair:#C9D2D7; --hair-2:#DDE4E8;
+  --accent:#0F6E8C; --accent-soft:#0F6E8C1A;
+  --normal:#2E7D63; --watch:#C08A2E; --drought:#B24A2C; --uncovered:#B8C3C9;
+  --gap:#8A97A0; --live:#2E7D63; --offline:#8A97A0;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  font-variant-numeric:tabular-nums;
+}
+.wrap{max-width:1240px; margin:0 auto; padding:32px 24px 72px; display:flex; flex-direction:column; gap:26px}
+.lbl{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--slate)}
+h1,h2,h3{font-family:var(--mono); font-weight:600; text-wrap:balance; margin:0}
+h1{font-size:23px; letter-spacing:-.01em}
+h2{font-size:14px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2)}
+h3{font-size:15px}
+p{margin:0}
+section{display:flex; flex-direction:column; gap:14px}
+.card{background:var(--surface); border:1px solid var(--hair); padding:18px 20px}
+.note{font-size:13px; color:var(--slate); max-width:70ch}
+
+.masthead{border-bottom:2px solid var(--ink); padding-bottom:14px; display:flex; flex-direction:column; gap:14px}
+.masthead-top{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px}
+.brand{display:flex; align-items:center; gap:14px}
+.logo{width:44px; height:auto; color:var(--accent); flex:none}
+.brandtext{display:flex; flex-direction:column; gap:2px}
+.byline{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--slate)}
+
+/* Bridge strip: the architecture is the contribution, so it gets shown, not described. */
+.bridge-strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0;
+  border:1px solid var(--hair); background:var(--surface)}
+.stage{padding:14px 16px; border-right:1px solid var(--hair-2); display:flex;
+  flex-direction:column; gap:5px; position:relative}
+.stage:last-child{border-right:none}
+.stage .idx{font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--slate)}
+.stage .nm{font-family:var(--mono); font-size:12.5px; color:var(--ink); font-weight:600}
+.stage .out{font-size:12px; color:var(--slate); line-height:1.45}
+.stage[data-kind="source"] .nm{color:var(--accent)}
+.stage[data-kind="decision"]{background:var(--accent-soft)}
+.stage[data-kind="decision"] .nm{color:var(--accent)}
+@media (max-width:760px){ .stage{border-right:none; border-bottom:1px solid var(--hair-2)} }
+.badge{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  border:1px solid currentColor; padding:3px 9px; color:var(--watch); white-space:nowrap}
+.runmeta{display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:14px 22px;
+  font-family:var(--mono); font-size:12px}
+.runmeta div{display:flex; flex-direction:column; gap:2px}
+.runmeta b{font-weight:600; color:var(--ink)}
+
+.controls{position:sticky; top:0; z-index:20; background:var(--surface); border:1px solid var(--hair);
+  padding:14px 18px; display:grid; grid-template-columns:auto auto 1fr auto; gap:24px; align-items:center}
+.ctl{display:flex; flex-direction:column; gap:7px; min-width:0}
+.seg{display:flex; border:1px solid var(--hair)}
+.seg button{font-family:var(--mono); font-size:12px; padding:5px 13px; background:transparent;
+  border:none; border-right:1px solid var(--hair); color:var(--slate); cursor:pointer}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--accent); color:#fff}
+.seg button:hover:not([aria-pressed="true"]){color:var(--ink)}
+.thr{display:flex; align-items:center; gap:11px}
+input[type=range]{width:190px; accent-color:var(--accent)}
+.thrval{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--accent); min-width:42px}
+.thrcount{font-family:var(--mono); font-size:11.5px; color:var(--slate); white-space:nowrap}
+.modelstat{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11.5px; color:var(--slate)}
+.led{width:8px; height:8px; border-radius:50%; background:var(--offline); flex:none}
+.led[data-on="true"]{background:var(--live)}
+
+.callout{border-left:3px solid var(--drought); padding:14px 18px; background:var(--surface);
+  border-top:1px solid var(--hair); border-right:1px solid var(--hair); border-bottom:1px solid var(--hair)}
+.callout.none{border-left-color:var(--normal)}
+.callout h3{color:var(--drought)}
+.callout.none h3{color:var(--normal)}
+.callout p{color:var(--ink-2); font-size:14px; margin-top:6px}
+
+.mapgrid{display:grid; grid-template-columns:1fr 320px; gap:0; border:1px solid var(--hair); background:var(--surface)}
+.mapcell{position:relative; min-width:0}
+#map{height:520px; min-width:0}
+#maploading{position:absolute; inset:0; z-index:5; background:var(--surface); color:var(--slate);
+  font-family:var(--mono); font-size:12.5px; line-height:1.7; padding:24px; text-align:center;
+  display:flex; align-items:center; justify-content:center}
+.maplibregl-popup-content{background:var(--surface); color:var(--ink); border:1px solid var(--hair);
+  border-radius:0; font-family:var(--mono); font-size:12px; padding:9px 12px; box-shadow:none}
+.maplibregl-popup-tip{display:none}
+.mapside{border-left:1px solid var(--hair); padding:16px 18px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; max-height:520px}
+.legend{display:flex; flex-direction:column; gap:7px}
+.legend div{display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:11.5px; color:var(--slate)}
+.sw{width:13px; height:13px; flex:none; border:1px solid var(--hair)}
+.rlist{display:flex; flex-direction:column; gap:2px}
+.rbtn{text-align:left; background:transparent; border:1px solid transparent; padding:9px 10px; cursor:pointer;
+  display:grid; grid-template-columns:1fr auto; gap:4px; align-items:baseline; color:var(--ink)}
+.rbtn:hover{border-color:var(--hair)}
+.rbtn[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-soft)}
+.rbtn .rn{font-family:var(--mono); font-size:12.5px}
+.rbtn .rv{font-family:var(--mono); font-size:13px; font-weight:600}
+.rbtn .rc{grid-column:1/-1; font-size:11.5px; color:var(--slate)}
+.mapfail{padding:22px; font-family:var(--mono); font-size:12.5px; color:var(--slate); line-height:1.7}
+
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px}
+.region h3{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.region .zone{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--slate); font-weight:400}
+.counties{font-size:13px; color:var(--slate); margin-top:4px}
+.months{display:flex; flex-direction:column; margin-top:14px}
+.mrow{display:grid; grid-template-columns:58px 1fr 62px; align-items:center; gap:10px; padding:9px 6px;
+  border-top:1px solid var(--hair-2); background:transparent}
+.mrow:first-child{border-top:none}
+.mrow[data-sel="true"]{background:var(--accent-soft)}
+.mname{font-family:var(--mono); font-size:12px; color:var(--ink-2)}
+.mlead{font-family:var(--mono); font-size:10px; color:var(--slate); display:block}
+.bar{position:relative; height:7px; background:var(--hair-2)}
+.bar i{position:absolute; left:0; top:0; bottom:0; display:block}
+.bar u{position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--accent)}
+.mval{font-family:var(--mono); font-size:13px; text-align:right; font-weight:600}
+
+.tblwrap{overflow-x:auto; border:1px solid var(--hair); background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-family:var(--mono); font-size:12.5px; min-width:620px}
+th,td{padding:9px 14px; text-align:right; border-bottom:1px solid var(--hair-2); white-space:nowrap}
+th{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--slate); font-weight:500; border-bottom:1px solid var(--hair)}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tbody tr[data-sel="true"]{background:var(--accent-soft)}
+.pill{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:2px 7px; border:1px solid currentColor}
+.gapcell{color:var(--gap); font-style:italic; font-family:var(--sans); font-size:12px}
+
+.gapbox{border:1px dashed var(--gap); padding:12px 16px}
+.gapbox .lbl{color:var(--gap)}
+.gapbox p{color:var(--slate); font-size:13.5px; margin-top:4px}
+
+.actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+.act{font-family:var(--mono); font-size:12px; padding:8px 14px; background:transparent;
+  border:1px solid var(--hair); color:var(--ink); cursor:pointer}
+.act:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+.act:disabled{color:var(--gap); border-style:dashed; cursor:not-allowed}
+.reason{font-size:12.5px; color:var(--slate); margin-top:9px}
+
+.limits{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:7px}
+.limits li{font-size:13.5px; color:var(--ink-2); padding-left:16px; position:relative}
+.limits li::before{content:""; position:absolute; left:0; top:9px; width:6px; height:1px; background:var(--slate)}
+
+footer{border-top:1px solid var(--hair); padding-top:16px; font-size:12.5px; color:var(--slate); display:flex; flex-direction:column; gap:6px}
+code{font-family:var(--mono); font-size:12px; background:var(--accent-soft); padding:1px 5px; color:var(--accent)}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.err{border:1px solid var(--drought); color:var(--drought); padding:16px 20px; font-family:var(--mono); font-size:13px}
+.ask{display:flex; flex-direction:column; gap:12px}
+.asklog{display:flex; flex-direction:column; gap:12px; max-height:340px; overflow-y:auto}
+.msg{display:flex; flex-direction:column; gap:3px}
+.msg .who{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--slate)}
+.msg p{font-size:14px; white-space:pre-wrap}
+.msg[data-who="you"] p{color:var(--ink-2)}
+.askrow{display:flex; gap:8px}
+.askrow input{flex:1; width:auto}
+.chips{display:flex; flex-wrap:wrap; gap:7px}
+.chip{font-family:var(--mono); font-size:11.5px; padding:5px 10px; border:1px solid var(--hair);
+  background:transparent; color:var(--slate); cursor:pointer}
+.chip:hover{border-color:var(--accent); color:var(--accent)}
+
+/* Bulletin: on screen a preview, on paper the deliverable. */
+#bulletin{display:none}
+#bulletin.ready{display:block}
+.bhead{border-bottom:2px solid var(--ink); padding-bottom:10px; margin-bottom:14px}
+.bhead h3{font-size:18px}
+.bmeta{font-family:var(--mono); font-size:11px; color:var(--slate); margin-top:5px}
+.bsec{margin-top:14px}
+.bsec h4{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--slate); margin:0 0 5px}
+.bsec p{font-size:14px; line-height:1.6}
+.acts{display:flex; flex-direction:column; gap:8px; margin-top:8px}
+.act-row{display:grid; grid-template-columns:88px 1fr; gap:10px; align-items:baseline;
+  padding:8px 0; border-top:1px solid var(--hair-2)}
+.urg{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  padding:2px 7px; border:1px solid currentColor; text-align:center}
+.urg[data-u="act"]{color:var(--drought)}
+.urg[data-u="prepare"]{color:var(--watch)}
+.urg[data-u="monitor"]{color:var(--normal)}
+
+@media print{
+  @page{margin:16mm}
+  body{background:#fff; color:#000; font-size:11pt}
+  .wrap>*{display:none!important}
+  .wrap>#bulletinSection{display:block!important}
+  #bulletinSection h2,#bulletinSection .actions,#bulletinSection .note{display:none!important}
+  #bulletin{display:block!important; border:none; padding:0}
+  .card{border:none; padding:0; background:none}
+  .tblwrap{overflow:visible; border:1px solid #999}
+  table{min-width:0; font-size:9.5pt}
+  a{color:#000; text-decoration:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+@media (max-width:900px){
+  .controls{grid-template-columns:1fr; gap:14px}
+  .mapgrid{grid-template-columns:1fr}
+  .mapside{border-left:none; border-top:1px solid var(--hair); max-height:none}
+  #map{height:400px}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="note">Loading forecast…</p></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+// Inlined rather than linked so the mark renders before any network round-trip and
+// inherits the theme; currentColor is what makes one file work on both grounds.
+const LOGO=`<svg class="logo" viewBox="0 0 66 44" role="img" aria-label="Anga Pro">
+<path fill="currentColor" d="M45 17.5H40.5V9C40.5 9 39 5 33 5C27 5 26 9 26 9V44H20C20 44 15.5 37.5 10.5 33C5.5 28.5 0 26.5 0 26.5V21.5H21V0H45V17.5ZM65.5 26C65.5 26 59.5 29 55 33C50.5 37 46 44 46 44H40.5V26H29.5V21H65.5V26ZM45.5 34.5C45.5 34.5 48.1148 31.6194 50 30C52.0146 28.2694 55.5 26 55.5 26H45.5V34.5ZM10.5 26C10.5 26 13.9854 28.1359 16 29.7646C17.8852 31.2888 20.5 34 20.5 34V26H10.5Z"/></svg>`;
+
+const MONTHS=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+const WATCH_BAND=0.05;
+const API_BASE="./api";
+const BASEMAP={
+  light:"https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+  dark:"https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+};
+
+const state={monthIndex:0, threshold:null, region:null, backend:false, map:null, counties:null};
+let FC=null, VAL=null;
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const themeIsDark=()=>{
+  const attr=document.documentElement.getAttribute("data-theme");
+  if(attr) return attr==="dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+};
+
+function sevOf(prob,threshold){
+  if(prob===null||prob===undefined) return "uncovered";
+  if(prob>=threshold) return "drought";
+  if(threshold-prob<=WATCH_BAND) return "watch";
+  return "normal";
+}
+function months(){ return FC.regions[0].forecasts.map(f=>f.valid_month); }
+function forecastAt(region,i){ return region.forecasts[i]; }
+function allAt(i){ return FC.regions.map(rg=>({rg,f:forecastAt(rg,i)})); }
+function signalCount(){
+  let n=0;
+  FC.regions.forEach(rg=>rg.forecasts.forEach(f=>{ if(f.drought_prob>=state.threshold) n++; }));
+  return n;
+}
+
+async function loadJSON(url){
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error(url+" returned "+r.status);
+  return r.json();
+}
+async function probeBackend(){
+  try{
+    const ctl=new AbortController();
+    const t=setTimeout(()=>ctl.abort(),1500);
+    const r=await fetch(API_BASE+"/health",{signal:ctl.signal,cache:"no-store"});
+    clearTimeout(t);
+    return r.ok;
+  }catch(e){ return false; }
+}
+
+function shell(){
+  const r=FC.run, init=new Date(r.init_date+"T00:00:00Z"), fs=FC.regions[0].forecasts;
+  const span=MONTHS[fs[0].valid_month]+" to "+MONTHS[fs[fs.length-1].valid_month]+" "+fs[0].valid_year;
+  return `
+  <header class="masthead">
+    <div class="masthead-top">
+      <div class="brand">
+        ${LOGO}
+        <div class="brandtext">
+          <h1>Anga Pro</h1>
+          <span class="byline">Drought forecast bulletin &middot; by Nature Cipher</span>
+        </div>
+      </div>
+      <span class="badge">${esc(r.status)}</span>
+    </div>
+    <div class="runmeta">
+      <div><span class="lbl">Initialized</span><b>${MONTHS[init.getUTCMonth()+1]} ${init.getUTCFullYear()}</b></div>
+      <div><span class="lbl">Valid</span><b>${esc(span)}</b></div>
+      <div><span class="lbl">Lead months</span><b>${fs[0].lead_months} to ${fs[fs.length-1].lead_months}</b></div>
+      <div><span class="lbl">Ensemble</span><b>${r.ensemble_members} members, ${esc(r.ensemble_reduction)}</b></div>
+      <div><span class="lbl">Model</span><b>${esc(r.drought_model)} / ${esc(r.bridge_model)}</b></div>
+      <div><span class="lbl">Commit</span><b>${esc(r.code_commit)}</b></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="ctl">
+      <span class="lbl">Valid month</span>
+      <span class="seg" id="segMonth" role="group" aria-label="Select valid month"></span>
+    </div>
+    <div class="ctl">
+      <span class="lbl">Decision threshold</span>
+      <span class="thr">
+        <input type="range" id="thr" min="0.05" max="0.75" step="0.01" aria-label="Decision threshold">
+        <span class="thrval" id="thrVal"></span>
+        <span class="thrcount" id="thrCount"></span>
+      </span>
+    </div>
+    <div></div>
+    <div class="ctl">
+      <span class="lbl">Model service</span>
+      <span class="modelstat"><span class="led" id="led"></span><span id="ledTxt"></span></span>
+    </div>
+  </div>
+
+  <div id="callout"></div>
+
+  <section>
+    <h2>How this forecast was produced</h2>
+    <div class="bridge-strip">
+      <div class="stage" data-kind="source">
+        <span class="idx">INPUT</span>
+        <span class="nm">SEAS5</span>
+        <span class="out">${r.ensemble_members} ensemble members, ${esc(r.ensemble_reduction)}.
+        Atmosphere only — no satellite feed.</span>
+      </div>
+      <div class="stage">
+        <span class="idx">BRIDGE 1</span>
+        <span class="nm">&rarr; CHIRPS</span>
+        <span class="out">Rainfall proxy synthesised from ERA5 variables.</span>
+      </div>
+      <div class="stage">
+        <span class="idx">BRIDGE 2</span>
+        <span class="nm">&rarr; NDVI</span>
+        <span class="out">Vegetation proxy. Rainfall drives greenness.</span>
+      </div>
+      <div class="stage">
+        <span class="idx">BRIDGE 3</span>
+        <span class="nm">&rarr; LST</span>
+        <span class="out">Day and night surface temperature. Greenness moderates heat.</span>
+      </div>
+      <div class="stage" data-kind="decision">
+        <span class="idx">CLASSIFIER</span>
+        <span class="nm">${esc(r.drought_model)}</span>
+        <span class="out">51 features &rarr; P(drought), at ${fs[0].lead_months}&ndash;${fs[fs.length-1].lead_months} months lead.</span>
+      </div>
+    </div>
+    <p class="note">Each bridge consumes the previous one's output. The satellite record is not
+    discarded — it is distilled into the bridges at training time, which is what lets the
+    classifier run for months no satellite has observed yet.</p>
+  </section>
+
+  <section>
+    <h2>Coverage and severity</h2>
+    <div class="mapgrid">
+      <div class="mapcell">
+        <div id="map"></div>
+        <div id="maploading">Loading basemap and county boundaries…</div>
+      </div>
+      <div class="mapside">
+        <div class="legend" id="legend"></div>
+        <div>
+          <span class="lbl">Regions</span>
+          <div class="rlist" id="rlist"></div>
+        </div>
+        <p class="note" id="mapnote"></p>
+      </div>
+    </div>
+  </section>
+
+  <section><h2>By region</h2><div class="grid3" id="regions"></div></section>
+
+  <section>
+    <h2>Full issue</h2>
+    <div class="tblwrap"><table>
+      <thead><tr>
+        <th>Region</th><th>Valid</th><th>Lead</th><th>P(drought)</th><th>Margin</th>
+        <th>80% interval</th><th>Members over threshold</th><th>Signal</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <div class="gapbox">
+      <span class="lbl">Open gap — uncertainty</span>
+      <p>SEAS5 supplies ${FC.run.ensemble_members} ensemble members. The pipeline averages them at
+      <code>seas5_adapter.py:84</code> and discards the spread, so no forecast here carries an interval.
+      Every probability on this page is a point estimate of unknown width.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ask the forecast</h2>
+    <div class="card ask">
+      <div class="asklog" id="asklog"></div>
+      <div class="chips" id="askchips"></div>
+      <div class="askrow">
+        <input id="askinput" placeholder="Which counties should pre-position water trucking?"
+               aria-label="Ask a question about this forecast">
+        <button type="button" class="act" id="asksend">Ask</button>
+      </div>
+      <p class="note">Answers are grounded in this issue's forecast and validation data.
+      The assistant is instructed to refuse rather than estimate a figure the data does not contain.</p>
+    </div>
+  </section>
+
+  <section id="bulletinSection">
+    <h2>County bulletin</h2>
+    <div class="actions">
+      <button type="button" class="act" id="genbulletin">Generate bulletin</button>
+      <button type="button" class="act" id="printbulletin" disabled>Save as PDF</button>
+    </div>
+    <div class="card" id="bulletin"></div>
+    <p class="note" id="bulletinnote">Drafts the situation report a county drought committee would
+    circulate. The narrative is written by the model; every number in the table is rendered from
+    the forecast data, so a mis-stated figure cannot reach the table.</p>
+  </section>
+
+  <section>
+    <h2>Model service</h2>
+    <div class="card" id="modelcard"></div>
+  </section>
+
+  <section><h2>Validation</h2><div id="validation"></div></section>
+
+  <footer>
+    <p>Issued ${esc(FC.generated_at)} · schema ${esc(FC.schema_version)} · ${esc(FC.run.source)}</p>
+    <p>Boundaries: geoBoundaries gbOpen KEN ADM1, source RCMRD, public domain. Basemap © CARTO, © OpenStreetMap contributors.</p>
+    <p>NatureCipher AI · dataset citations in <code>docs/DATA_ACKNOWLEDGMENTS.md</code></p>
+  </footer>`;
+}
+
+function renderControls(){
+  const seg=document.getElementById("segMonth");
+  seg.innerHTML=months().map((m,i)=>
+    `<button type="button" data-i="${i}" aria-pressed="${i===state.monthIndex}">${MONTHS[m].slice(0,3)}</button>`).join("");
+  seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{ state.monthIndex=+b.dataset.i; render(); });
+
+  const thr=document.getElementById("thr");
+  thr.value=state.threshold;
+  thr.oninput=()=>{ state.threshold=+thr.value; render(); };
+
+  document.getElementById("thrVal").textContent=state.threshold.toFixed(2);
+  const n=signalCount();
+  const issued=FC.config.threshold;
+  document.getElementById("thrCount").textContent =
+    `${n} of 9 flagged` + (Math.abs(state.threshold-issued)>1e-9 ? ` · issued at ${issued}` : "");
+
+  document.getElementById("led").dataset.on=String(state.backend);
+  document.getElementById("ledTxt").textContent=state.backend?"connected":"not connected";
+}
+
+function renderCallout(){
+  const hits=[];
+  FC.regions.forEach(rg=>rg.forecasts.forEach(f=>{ if(f.drought_prob>=state.threshold) hits.push({rg,f}); }));
+  const el=document.getElementById("callout");
+  if(!hits.length){
+    el.innerHTML=`<div class="callout none"><h3>No drought signal at threshold ${state.threshold.toFixed(2)}</h3>
+      <p>All nine forecasts in this issue fall below the decision threshold.</p></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="callout">`+hits.map(({rg,f})=>{
+    const margin=f.drought_prob-state.threshold;
+    const thin=margin<0.05;
+    return `<h3>${esc(rg.name)} — ${MONTHS[f.valid_month]} ${f.valid_year}</h3>
+      <p>Probability <b>${f.drought_prob.toFixed(3)}</b> at ${f.lead_months} months lead, clearing the
+      ${state.threshold.toFixed(2)} threshold by <b>${margin>0?"+":""}${margin.toFixed(3)}</b>.
+      ${thin?"That margin is narrower than the spread this pipeline can currently resolve, so treat the call as provisional.":""}</p>`;
+  }).join("")+`</div>`;
+}
+
+function renderSide(){
+  const i=state.monthIndex;
+  document.getElementById("legend").innerHTML=
+    [["drought","At or above threshold"],["watch",`Within ${WATCH_BAND.toFixed(2)} of threshold`],
+     ["normal","Below threshold"],["uncovered","No model coverage"]]
+    .map(([k,label])=>`<div><span class="sw" style="background:${cssVar("--"+k)}"></span>${label}</div>`).join("");
+
+  document.getElementById("rlist").innerHTML=allAt(i).map(({rg,f})=>{
+    const s=sevOf(f.drought_prob,state.threshold);
+    return `<button type="button" class="rbtn" data-id="${rg.id}" aria-pressed="${state.region===rg.id}">
+      <span class="rn">${esc(rg.name)}</span>
+      <span class="rv" style="color:${cssVar("--"+s)}">${f.drought_prob.toFixed(3)}</span>
+      <span class="rc">${rg.counties.length} counties · lead ${f.lead_months}</span>
+    </button>`;
+  }).join("");
+  document.getElementById("rlist").querySelectorAll(".rbtn").forEach(b=>{
+    b.onclick=()=>{ state.region = state.region===b.dataset.id ? null : b.dataset.id; render(); };
+  });
+
+  document.getElementById("mapnote").innerHTML=
+    `Shaded by P(drought) for ${MONTHS[months()[i]]} ${FC.regions[0].forecasts[i].valid_year} at the current threshold.
+     Counties inherit their region's probability; the model does not resolve individual counties.`;
+}
+
+function renderRegions(){
+  document.getElementById("regions").innerHTML=FC.regions.map(rg=>{
+    const rows=rg.forecasts.map((f,i)=>{
+      const s=sevOf(f.drought_prob,state.threshold);
+      return `<div class="mrow" data-sel="${i===state.monthIndex}">
+        <span class="mname">${MONTHS[f.valid_month].slice(0,3)}<span class="mlead">lead ${f.lead_months}</span></span>
+        <span class="bar"><i style="width:${Math.max(f.drought_prob*100,0.7)}%;background:${cssVar("--"+s)}"></i>
+          <u style="left:${state.threshold*100}%"></u></span>
+        <span class="mval" style="color:${cssVar("--"+s)}">${f.drought_prob.toFixed(3)}</span>
+      </div>`;
+    }).join("");
+    return `<div class="card region">
+      <h3>${esc(rg.name)}<span class="zone">${esc(rg.climate_zone)}</span></h3>
+      <p class="counties">${rg.counties.map(esc).join(" · ")}</p>
+      <p class="counties">${rg.mean_annual_precipitation_mm} mm mean annual rainfall</p>
+      <div class="months">${rows}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderTable(){
+  const rows=[];
+  FC.regions.forEach(rg=>rg.forecasts.forEach((f,i)=>{
+    const s=sevOf(f.drought_prob,state.threshold);
+    const margin=f.drought_prob-state.threshold;
+    const sel=i===state.monthIndex&&(!state.region||state.region===rg.id);
+    rows.push(`<tr data-sel="${sel}">
+      <td>${esc(rg.name)}</td>
+      <td>${MONTHS[f.valid_month]} ${f.valid_year}</td>
+      <td>${f.lead_months}</td>
+      <td>${f.drought_prob.toFixed(3)}</td>
+      <td>${margin>0?"+":""}${margin.toFixed(3)}</td>
+      <td class="gapcell">${f.prob_p10===null?"not computed":f.prob_p10.toFixed(3)+" to "+f.prob_p90.toFixed(3)}</td>
+      <td class="gapcell">${f.ensemble_agreement===null?"not computed":(f.ensemble_agreement*100).toFixed(1)+"%"}</td>
+      <td><span class="pill" style="color:${cssVar("--"+s)}">${s}</span></td>
+    </tr>`);
+  }));
+  document.getElementById("tbody").innerHTML=rows.join("");
+}
+
+function renderModelCard(){
+  const on=state.backend;
+  const acts=[
+    ["rerun","Run new initialization","Downloads a SEAS5 GRIB and re-runs the pipeline for all regions"],
+    ["scenario","Perturb scenario","Scales forecast rainfall and re-runs the bridges"],
+    ["explain","Explain drivers","Returns SHAP contributions per feature for the selected forecast"]
+  ];
+  document.getElementById("modelcard").innerHTML=`
+    <span class="lbl">Interactive controls</span>
+    <p class="note" style="margin-top:6px">Month and threshold are re-derived in the browser from stored
+    probabilities, so they need no model run and stay accurate offline. Changing the threshold changes the
+    decision, never the forecast. The three controls below do need the model.</p>
+    <div class="actions">
+      ${acts.map(([id,label,hint])=>
+        `<button type="button" class="act" id="act-${id}" ${on?"":"disabled"} title="${esc(hint)}">${esc(label)}</button>`).join("")}
+    </div>
+    <p class="reason">${on
+      ? `Model service reachable at <code>${esc(API_BASE)}</code>.`
+      : `Model service not reachable at <code>${esc(API_BASE)}</code>, so these are disabled rather than hidden.
+         Start it with <code>uvicorn inference.api:app</code> and reload. Everything else on this page works without it.`}</p>`;
+}
+
+function renderValidation(){
+  const el=document.getElementById("validation");
+  if(!VAL){ el.innerHTML=`<div class="gapbox"><span class="lbl">Validation not loaded</span>
+    <p><code>validation.json</code> did not load, so no skill evidence is shown.</p></div>`; return; }
+  const b=VAL.backtest||{}, m=b.metrics||{}, ci=b.confidence_interval;
+  const num=(v,d=3)=>(typeof v==="number")?v.toFixed(d):"n/a";
+
+  // Accepts both shapes: the multi-baseline object written by
+  // scripts/evaluate_baselines.py, and the earlier single `baseline` field.
+  const bl=b.baselines||(b.baseline?{legacy:b.baseline}:{});
+  const LABELS={majority_class:"Majority class",era5_only:"ERA5 only, no bridges",legacy:"Baseline"};
+  const rows=Object.entries(bl).map(([k,v])=>{
+    const bm=(v&&v.computed&&v.metrics)?v.metrics:null;
+    return `<tr><td>${esc(LABELS[k]||k)}</td>
+      <td>${bm?num(bm.accuracy):'<span class="gapcell">not computed</span>'}</td>
+      <td>${bm?num(bm.f1):""}</td>
+      <td>${bm?num(bm.recall):""}</td></tr>`;
+  }).join("");
+
+  const lift=b.bridge_lift_f1_over_era5_only;
+  // The lift is the pipeline's own thesis test: the bridges are deterministic
+  // functions of the ERA5 inputs, so a non-positive lift means they add no
+  // information the classifier did not already have.
+  const liftBox = (typeof lift==="number") ? `
+    <div class="${lift>0?'card':'gapbox'}">
+      <span class="lbl">${lift>0?"Bridge lift over ERA5-only":"Open gap — bridge lift"}</span>
+      <p style="margin-top:6px"><b style="font-size:17px;color:${lift>0?'var(--normal)':'var(--drought)'}">
+      ${lift>0?"+":""}${num(lift)} F1</b> versus the same classifier without the bridges.
+      ${lift>0
+        ? "The bridges add signal the atmospheric features alone do not carry."
+        : "The bridges do not improve on their own inputs on this split. They are deterministic functions of the ERA5 features, so this is the expected ceiling; the contribution is forecastability at lead time, not accuracy."}</p>
+    </div>` : "";
+
+  el.innerHTML=`
+    <div class="card"><div class="runmeta">
+      <div><span class="lbl">Region</span><b>${esc(b.region||"n/a")}</b></div>
+      <div><span class="lbl">Period</span><b>${esc((b.period||{}).start||"?")} to ${esc((b.period||{}).end||"?")}</b></div>
+      <div><span class="lbl">Samples</span><b>${b.n_samples||0} months</b></div>
+      <div><span class="lbl">Accuracy</span><b>${num(m.accuracy)}</b></div>
+      <div><span class="lbl">F1</span><b>${num(m.f1)}</b></div>
+      <div><span class="lbl">Recall</span><b>${num(m.recall)}</b></div>
+      <div><span class="lbl">Drought base rate</span><b${b.base_rate==null?' class="gapcell"':''}>${
+        b.base_rate==null?"not published":(b.base_rate*100).toFixed(1)+"%"}</b></div>
+    </div></div>
+    ${liftBox}
+    ${rows?`<div class="tblwrap"><table>
+      <thead><tr><th>Baseline</th><th>Accuracy</th><th>F1</th><th>Recall</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`:""}
+    <div class="gapbox">
+      <span class="lbl">How to read the headline metric</span>
+      <p>Accuracy ${num(m.accuracy)} over ${b.n_samples||0} months${ci?` carries a ${(ci.level*100).toFixed(0)}%
+      confidence interval of <b>${num(ci.low)} to ${num(ci.high)}</b>`:""}.${
+        b.base_rate!=null
+          ? ` Drought is ${(b.base_rate*100).toFixed(0)}% of months in this window, so the baselines
+             above are the comparison that matters, not the raw accuracy.`
+          : " The base rate is not published for this window, so the raw accuracy cannot be read as skill."
+      } The decision threshold was tuned on this same window.</p>
+    </div>
+    <div class="card">
+      <span class="lbl">Retrospective, ${esc(VAL.retrospective.period.start)} to ${esc(VAL.retrospective.period.end)}</span>
+      <p style="margin-top:6px">${esc(VAL.retrospective.claim)}, against ${esc(VAL.retrospective.reference_event)}.</p>
+      <p style="margin-top:8px;color:var(--slate);font-size:13.5px">${esc(VAL.retrospective.caveat)}</p>
+    </div>
+    <div class="card">
+      <span class="lbl">Known limitations</span>
+      <ul class="limits" style="margin-top:10px">${VAL.known_limitations.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>
+    </div>`;
+}
+
+function paintMap(){
+  const map=state.map;
+  if(!map||!map.getSource("counties")) return;
+  const i=state.monthIndex;
+  const byRegion={};
+  FC.regions.forEach(rg=>{ byRegion[rg.id]={prob:forecastAt(rg,i).drought_prob,name:rg.name}; });
+
+  const data={type:"FeatureCollection",features:state.counties.features.map(f=>{
+    const rid=f.properties.region_id;
+    const rec=rid?byRegion[rid]:null;
+    const prob=rec?rec.prob:null;
+    return {...f,properties:{...f.properties,
+      prob, region_name:rec?rec.name:null,
+      prob_label: prob==null ? "" : prob.toFixed(2),
+      sev:sevOf(prob,state.threshold),
+      dim:(state.region&&rid!==state.region)?1:0}};
+  })};
+  map.getSource("counties").setData(data);
+
+  map.setPaintProperty("counties-fill","fill-color",
+    ["match",["get","sev"],
+      "drought",cssVar("--drought"),"watch",cssVar("--watch"),
+      "normal",cssVar("--normal"),cssVar("--uncovered")]);
+  map.setPaintProperty("counties-fill","fill-opacity",
+    ["case",["==",["get","dim"],1],0.12,["==",["get","sev"],"uncovered"],0.25,0.66]);
+  map.setPaintProperty("counties-line","line-color",cssVar("--hair"));
+}
+
+function initMap(){
+  const holder=document.getElementById("map");
+  const dropOverlay=()=>{ const o=document.getElementById("maploading"); if(o) o.remove(); };
+  if(typeof maplibregl==="undefined"){
+    dropOverlay();
+    holder.className="mapfail";
+    holder.textContent="Map library did not load. The rest of this page works without it. "
+      +"maplibre-gl is fetched from unpkg.com, so this view needs network access on first load.";
+    return;
+  }
+  const map=new maplibregl.Map({
+    container:"map",
+    style:BASEMAP[themeIsDark()?"dark":"light"],
+    center:[38.6,1.0], zoom:4.9, attributionControl:{compact:true}
+  });
+  state.map=map;
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+
+  map.on("error",e=>{
+    if(e&&e.error&&/style|sprite|glyphs/i.test(String(e.error.message||""))){
+      dropOverlay();
+      holder.className="mapfail";
+      holder.textContent="Basemap did not load. The choropleth needs the CARTO style from basemaps.cartocdn.com.";
+    }
+  });
+
+  // Bind to style readiness, not "load". "load" also waits on basemap tiles, so a slow
+  // or blocked tile host would leave the choropleth unrendered even though it needs none.
+  const addLayers=()=>{
+    if(!map.getStyle()||map.getSource("counties")) return;
+    map.addSource("counties",{type:"geojson",data:state.counties});
+    map.addLayer({id:"counties-fill",type:"fill",source:"counties",paint:{"fill-color":"#888","fill-opacity":0.6}});
+    map.addLayer({id:"counties-line",type:"line",source:"counties",paint:{"line-color":"#999","line-width":0.6}});
+    // Covered counties carry a heavier edge so the model's footprint reads as a
+    // shape at a glance, rather than having to be inferred from fill alone.
+    map.addLayer({id:"counties-edge",type:"line",source:"counties",
+      filter:["!=",["get","region_id"],null],
+      paint:{"line-color":cssVar("--ink"),"line-width":1.1,"line-opacity":0.5}});
+    map.addLayer({id:"counties-hover",type:"line",source:"counties",
+      filter:["==",["get","county"],""],
+      paint:{"line-color":cssVar("--accent"),"line-width":2.2}});
+    map.addLayer({id:"counties-label",type:"symbol",source:"counties",
+      filter:["!=",["get","region_id"],null],
+      layout:{"text-field":["concat",["get","county"],"\n",["get","prob_label"]],
+              "text-size":10.5,"text-line-height":1.15,"text-allow-overlap":false,
+              "text-padding":3},
+      paint:{"text-color":cssVar("--ink"),"text-halo-color":cssVar("--surface"),
+             "text-halo-width":1.6}});
+
+    // Frame the covered counties instead of a fixed centre, so the map still
+    // fits when regions are added or the panel is resized.
+    const bb = state.counties.features
+      .filter(f => f.properties.region_id)
+      .reduce((acc, f) => {
+        const walk = c => Array.isArray(c[0]) ? c.forEach(walk)
+          : (acc[0]=Math.min(acc[0],c[0]), acc[1]=Math.min(acc[1],c[1]),
+             acc[2]=Math.max(acc[2],c[0]), acc[3]=Math.max(acc[3],c[1]));
+        walk(f.geometry.coordinates);
+        return acc;
+      }, [180,90,-180,-90]);
+    if(bb[0] < bb[2]) map.fitBounds([[bb[0],bb[1]],[bb[2],bb[3]]],{padding:44,duration:0});
+
+    const popup=new maplibregl.Popup({closeButton:false,closeOnClick:false});
+    map.on("mousemove","counties-fill",e=>{
+      if(map.getLayer("counties-hover")){
+        map.setFilter("counties-hover",["==",["get","county"],e.features[0].properties.county]);
+      }
+      map.getCanvas().style.cursor="pointer";
+      const p=e.features[0].properties;
+      const body=p.region_name
+        ? `${p.county}<br>${p.region_name}<br>P(drought) ${Number(p.prob).toFixed(3)}`
+        : `${p.county}<br>no model coverage`;
+      popup.setLngLat(e.lngLat).setHTML(body).addTo(map);
+    });
+    map.on("mouseleave","counties-fill",()=>{
+      map.getCanvas().style.cursor=""; popup.remove();
+      if(map.getLayer("counties-hover")) map.setFilter("counties-hover",["==",["get","county"],""]);
+    });
+    map.on("click","counties-fill",e=>{
+      const rid=e.features[0].properties.region_id;
+      if(rid){ state.region = state.region===rid ? null : rid; render(); }
+    });
+    paintMap();
+
+    // Basemap tiles can stay pending far longer than the choropleth needs, so clear the
+    // placeholder on the first frame that actually draws counties, not on map "idle".
+    const clearOverlay=()=>{
+      if(!map.queryRenderedFeatures({layers:["counties-fill"]}).length) return;
+      const o=document.getElementById("maploading");
+      if(o) o.remove();
+      map.off("render",clearOverlay);
+    };
+    map.on("render",clearOverlay);
+  };
+  if(map.isStyleLoaded()) addLayers(); else map.on("styledata",addLayers);
+
+  // setStyle drops custom layers; addLayers is bound to styledata so it re-adds them.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{
+    if(!document.documentElement.getAttribute("data-theme")){
+      map.setStyle(BASEMAP[themeIsDark()?"dark":"light"]);
+    }
+  });
+}
+
+const SUGGESTED = [
+  "Which counties should pre-position water trucking?",
+  "How confident should I be in the October signal?",
+  "What would change if I used a 0.35 threshold?",
+  "Is this a forecast or a hindcast?",
+];
+
+const chatHistory = [];
+
+function pushMessage(who, text){
+  chatHistory.push({role: who === "you" ? "user" : "assistant", content: text});
+  const log = document.getElementById("asklog");
+  const node = document.createElement("div");
+  node.className = "msg";
+  node.dataset.who = who;
+  node.innerHTML = `<span class="who">${who === "you" ? "You" : "Anga Pro"}</span><p></p>`;
+  node.querySelector("p").textContent = text;
+  log.appendChild(node);
+  log.scrollTop = log.scrollHeight;
+  return node;
+}
+
+async function ask(question){
+  const input = document.getElementById("askinput");
+  const send = document.getElementById("asksend");
+  if(!question.trim()) return;
+
+  input.value = "";
+  send.disabled = true;
+  pushMessage("you", question);
+  const pending = pushMessage("bot", "Thinking...");
+
+  try {
+    const res = await fetch(API_BASE + "/chat", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({messages: chatHistory}),
+    });
+    const data = await res.json();
+    // Drop the placeholder from history so the model never sees "Thinking..."
+    // echoed back as its own prior turn.
+    chatHistory.pop();
+    if(!res.ok){
+      pending.querySelector("p").textContent = data.error || `Request failed (${res.status}).`;
+    } else {
+      pending.querySelector("p").textContent = data.reply;
+      chatHistory.push({role: "assistant", content: data.reply});
+    }
+  } catch(e) {
+    chatHistory.pop();
+    pending.querySelector("p").textContent =
+      "Chat is unavailable. It needs the /api/chat function and a GROQ_API_KEY secret.";
+  } finally {
+    send.disabled = false;
+    input.focus();
+  }
+}
+
+function initChat(){
+  const chips = document.getElementById("askchips");
+  chips.innerHTML = SUGGESTED.map(q => `<button type="button" class="chip">${esc(q)}</button>`).join("");
+  chips.querySelectorAll(".chip").forEach(b => b.onclick = () => ask(b.textContent));
+
+  const input = document.getElementById("askinput");
+  document.getElementById("asksend").onclick = () => ask(input.value);
+  input.addEventListener("keydown", e => { if(e.key === "Enter") ask(input.value); });
+}
+
+function renderBulletin(payload){
+  const {narrative: n, rows, threshold, init_date, status} = payload;
+  const issued = new Date().toISOString().slice(0, 10);
+
+  const actions = (n.recommended_actions || []).map(a => `
+    <div class="act-row">
+      <span class="urg" data-u="${esc(a.urgency)}">${esc(a.urgency)}</span>
+      <span><b>${esc(a.region)}</b> — ${esc(a.action)}</span>
+    </div>`).join("");
+
+  const table = rows.map(r => `
+    <tr><td>${esc(r.region)}</td><td>${esc(r.month)}</td><td>${r.lead}</td>
+    <td>${r.prob.toFixed(3)}</td><td>${r.margin >= 0 ? "+" : ""}${r.margin.toFixed(3)}</td>
+    <td>${r.flagged ? "DROUGHT" : "normal"}</td></tr>`).join("");
+
+  document.getElementById("bulletin").innerHTML = `
+    <div class="bhead">
+      <h3>ASAL Drought Bulletin</h3>
+      <div class="bmeta">Issued ${issued} · SEAS5 initialization ${esc(init_date)} ·
+      decision threshold ${threshold} · status ${esc(status)}</div>
+    </div>
+    <div class="bsec"><h4>Headline</h4><p><b>${esc(n.headline)}</b></p></div>
+    <div class="bsec"><h4>Situation</h4><p>${esc(n.situation)}</p></div>
+    <div class="bsec"><h4>Confidence</h4><p>${esc(n.confidence)}</p></div>
+    <div class="bsec"><h4>Recommended action</h4><div class="acts">${actions}</div></div>
+    <div class="bsec"><h4>Forecast data</h4>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Region</th><th>Valid</th><th>Lead</th><th>P(drought)</th>
+        <th>Margin</th><th>Signal</th></tr></thead>
+        <tbody>${table}</tbody></table></div>
+    </div>
+    <div class="bsec"><h4>Basis and limits</h4>
+      <p>Produced by Anga Pro from a single ECMWF SEAS5 initialization. Satellite
+      indicators are synthesised by chained XGBoost regressors, not observed. Ensemble spread
+      is not carried, so each probability is a point estimate without an error bar. Soil
+      moisture uses a persistence assumption. Forecasts are experimental and are intended to
+      complement, not replace, ICPAC Drought Watch and national advisories.</p>
+    </div>`;
+
+  document.getElementById("bulletin").classList.add("ready");
+  document.getElementById("printbulletin").disabled = false;
+}
+
+function initBulletin(){
+  const gen = document.getElementById("genbulletin");
+  const note = document.getElementById("bulletinnote");
+
+  gen.onclick = async () => {
+    gen.disabled = true;
+    const original = gen.textContent;
+    gen.textContent = "Drafting...";
+    try {
+      const res = await fetch(API_BASE + "/bulletin", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({threshold: state.threshold}),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
+      renderBulletin(data);
+    } catch(e) {
+      note.textContent = `Bulletin unavailable: ${e.message} It needs the /api/bulletin function `
+        + "and a GROQ_API_KEY secret on the deployment.";
+    } finally {
+      gen.disabled = false;
+      gen.textContent = original;
+    }
+  };
+
+  // Print stylesheet hides everything except the bulletin, so the browser's
+  // print-to-PDF produces the document itself rather than a screenshot of a dashboard.
+  document.getElementById("printbulletin").onclick = () => window.print();
+}
+
+function render(){
+  renderControls(); renderCallout(); renderSide();
+  renderRegions(); renderTable(); renderModelCard(); paintMap();
+}
+
+(async function(){
+  const app=document.getElementById("app");
+  try{
+    FC=await loadJSON("./forecast.v2.json");
+    state.threshold=FC.config.threshold;
+    try{ VAL=await loadJSON("./validation.json"); }catch(e){ VAL=null; }
+    try{ state.counties=await loadJSON("./kenya-counties.geojson"); }catch(e){ state.counties=null; }
+
+    app.innerHTML=shell();
+    renderValidation();
+    render();
+    initChat();
+    initBulletin();
+    if(state.counties) initMap();
+    else{
+      const o=document.getElementById("maploading"); if(o) o.remove();
+      const h=document.getElementById("map");
+      h.className="mapfail";
+      h.textContent="kenya-counties.geojson not found. Build it with: python scripts/build_counties_geojson.py <geoBoundaries-KEN-ADM1.geojson>";
+    }
+
+    state.backend=await probeBackend();
+    renderControls(); renderModelCard();
+  }catch(e){
+    app.innerHTML=`<div class="err">Forecast data did not load: ${esc(e.message)}<br><br>
+      Serve this directory over HTTP, for example <code>python -m http.server</code> from the repository root,
+      then open <code>/dashboard/</code>. Opening the file with file:// blocks the fetch.</div>`;
+  }
+})();
+</script>
+</body>
+</html>
