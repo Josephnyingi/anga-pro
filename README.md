@@ -24,7 +24,7 @@
 
 ## The problem in one sentence
 
-You cannot photograph October in July.
+You cannot photograph October in August.
 
 Drought early-warning systems run on satellite data — rainfall from CHIRPS,
 vegetation greenness from MODIS. Those pictures are excellent, and they only
