@@ -5,7 +5,7 @@
 | File | Use |
 |---|---|
 | `logo.svg` | `fill="currentColor"` — inherits the surrounding text colour. Use in the app, where a theme is in scope |
-| `logo-teal.svg` | Fixed `#0F6E8C`. Use in the README and anywhere `currentColor` is stripped, which GitHub does inside `<img>` |
+| `logo-ochre.svg` | Fixed `#96591C`. Use in the README and anywhere `currentColor` is stripped, which GitHub does inside `<img>` |
 | `favicon.png` | Browser tab icon, already wired in `dashboard/index.html` |
 
 The mark is also inlined directly in `dashboard/index.html` rather than linked, so

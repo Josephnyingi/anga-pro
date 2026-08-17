@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo-teal.svg" width="86" alt="Anga Pro">
+<img src="docs/assets/logo-ochre.svg" width="86" alt="Anga Pro">
 
 # Anga Pro
 

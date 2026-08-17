@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anga Pro — Drought Forecast Bulletin | Nature Cipher</title>
+<title>Anga Pro — Drought Forecast Bulletin</title>
 <link rel="icon" type="image/png" href="./favicon.png">
 <meta name="description" content="Seasonal drought forecasts for Kenya's ASALs. Satellite indicators are synthesised from atmospheric forecasts, so the model runs three months ahead of any observation.">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
@@ -11,7 +11,7 @@
 :root{
   --paper:#EEF1F3; --surface:#FFFFFF; --ink:#12181C; --ink-2:#3A4750;
   --slate:#5A6872; --hair:#C9D2D7; --hair-2:#DDE4E8;
-  --accent:#0F6E8C; --accent-soft:#0F6E8C1A;
+  --accent:#96591C; --accent-soft:#96591C1A;
   --normal:#2E7D63; --watch:#C08A2E; --drought:#B24A2C; --uncovered:#B8C3C9;
   --gap:#8A97A0; --live:#2E7D63; --offline:#8A97A0;
   --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
@@ -21,7 +21,7 @@
   :root{
     --paper:#0D1317; --surface:#141C21; --ink:#E4EAED; --ink-2:#B4C1C9;
     --slate:#8A9AA5; --hair:#26333B; --hair-2:#1D272D;
-    --accent:#4FB8D8; --accent-soft:#4FB8D822;
+    --accent:#D9954F; --accent-soft:#D9954F22;
     --normal:#4FA987; --watch:#D9A84E; --drought:#D9704F; --uncovered:#39474F;
     --gap:#6B7B85; --live:#4FA987; --offline:#6B7B85;
   }
@@ -29,14 +29,14 @@
 :root[data-theme="dark"]{
   --paper:#0D1317; --surface:#141C21; --ink:#E4EAED; --ink-2:#B4C1C9;
   --slate:#8A9AA5; --hair:#26333B; --hair-2:#1D272D;
-  --accent:#4FB8D8; --accent-soft:#4FB8D822;
+  --accent:#D9954F; --accent-soft:#D9954F22;
   --normal:#4FA987; --watch:#D9A84E; --drought:#D9704F; --uncovered:#39474F;
   --gap:#6B7B85; --live:#4FA987; --offline:#6B7B85;
 }
 :root[data-theme="light"]{
   --paper:#EEF1F3; --surface:#FFFFFF; --ink:#12181C; --ink-2:#3A4750;
   --slate:#5A6872; --hair:#C9D2D7; --hair-2:#DDE4E8;
-  --accent:#0F6E8C; --accent-soft:#0F6E8C1A;
+  --accent:#96591C; --accent-soft:#96591C1A;
   --normal:#2E7D63; --watch:#C08A2E; --drought:#B24A2C; --uncovered:#B8C3C9;
   --gap:#8A97A0; --live:#2E7D63; --offline:#8A97A0;
 }
@@ -237,8 +237,8 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 <script>
 // Inlined rather than linked so the mark renders before any network round-trip and
 // inherits the theme; currentColor is what makes one file work on both grounds.
-const LOGO=`<svg class="logo" viewBox="0 0 66 44" role="img" aria-label="Anga Pro">
-<path fill="currentColor" d="M45 17.5H40.5V9C40.5 9 39 5 33 5C27 5 26 9 26 9V44H20C20 44 15.5 37.5 10.5 33C5.5 28.5 0 26.5 0 26.5V21.5H21V0H45V17.5ZM65.5 26C65.5 26 59.5 29 55 33C50.5 37 46 44 46 44H40.5V26H29.5V21H65.5V26ZM45.5 34.5C45.5 34.5 48.1148 31.6194 50 30C52.0146 28.2694 55.5 26 55.5 26H45.5V34.5ZM10.5 26C10.5 26 13.9854 28.1359 16 29.7646C17.8852 31.2888 20.5 34 20.5 34V26H10.5Z"/></svg>`;
+const LOGO=`<svg class="logo" viewBox="0 0 68 44" role="img" aria-label="Anga Pro">
+<path fill="currentColor" d="M2,28H42V33H2ZM44,21H50V33H44ZM53,13H59V33H53ZM62,3H68V33H62Z"/></svg>`;
 
 const MONTHS=["","January","February","March","April","May","June","July","August","September","October","November","December"];
 const WATCH_BAND=0.05;
@@ -299,7 +299,7 @@ function shell(){
         ${LOGO}
         <div class="brandtext">
           <h1>Anga Pro</h1>
-          <span class="byline">Drought forecast bulletin &middot; by Nature Cipher</span>
+          <span class="byline">Drought forecast bulletin</span>
         </div>
       </div>
       <span class="badge">${esc(r.status)}</span>
