@@ -114,7 +114,7 @@ An early-warning system that overstates its confidence is worse than none.
 | User | Decision it supports |
 |---|---|
 | County drought committees — Turkana, Marsabit, Samburu, Isiolo, Wajir, Mandera, Garissa, Kitui, Makueni, Machakos, Tharaka-Nithi | Pre-position water trucking and fodder, or hold |
-| ICPAC and national met agencies | A forecast layer beside Drought Watch and HUSIKA, which monitor the present |
+| National met agencies | A forecast layer beside Drought Watch and HUSIKA, which monitor the present |
 | Anticipatory-action funds | Release money on a trigger, at a threshold they choose |
 
 The threshold is 0.25, not 0.5. That is a deliberate statement that **missing a
