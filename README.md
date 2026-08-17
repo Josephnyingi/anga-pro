@@ -6,9 +6,7 @@
 
 **Drought forecasts for months no satellite has seen yet.**
 
-by Nature Cipher
-
-[Live dashboard](https://naturecipher-drought.pages.dev) · [Methods](docs/METHODS.md) · [Architecture](docs/ARCHITECTURE.md) · [Data schemas](docs/DASHBOARD_SCHEMA.md)
+[Live dashboard](https://anga-pro-drought.pages.dev) · [Methods](docs/METHODS.md) · [Architecture](docs/ARCHITECTURE.md) · [Data schemas](docs/DASHBOARD_SCHEMA.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -21,7 +19,7 @@ by Nature Cipher
 </tr>
 </table>
 
-**[Open the live dashboard →](https://naturecipher-drought.pages.dev)**
+**[Open the live dashboard →](https://anga-pro-drought.pages.dev)**
 
 
 
@@ -101,7 +99,7 @@ An early-warning system that overstates its confidence is worse than none.
 
 ## What the dashboard does
 
-**[naturecipher-drought.pages.dev](https://naturecipher-drought.pages.dev)**
+**[anga-pro-drought.pages.dev](https://anga-pro-drought.pages.dev)**
 
 
 - **Scrub the month** — watch the map change across the three forecast months
@@ -159,7 +157,7 @@ python -m inference.forecast_runner     # writes dashboard/forecast.json
 ```
 
 Models and processed data sit in a private S3 bucket. Request read-only access
-from **kelvin@naturecipherai.com**. Every dataset is public at its original
+from **josenyingi@gmail.com**. Every dataset is public at its original
 source — see [`docs/DATA_ACKNOWLEDGMENTS.md`](docs/DATA_ACKNOWLEDGMENTS.md).
 
 ## Honest limits

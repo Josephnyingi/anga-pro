@@ -7,7 +7,7 @@ Required environment variables (set in .env, never committed):
     AWS_REGION        (default: us-east-1)
     S3_BUCKET         (default: naturecipher-forecast)
 
-Request credentials from: kelvin@naturecipherai.com
+Request credentials from: josenyingi@gmail.com
 """
 import io
 import os
@@ -149,7 +149,7 @@ def check_credentials() -> bool:
 
     if missing:
         print(f"\n❌ Missing credentials: {missing}")
-        print("Request credentials from: kelvin@naturecipherai.com")
+        print("Request credentials from: josenyingi@gmail.com")
         print("Then: cp credentials.env .env\n")
         return False
 

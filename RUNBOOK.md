@@ -149,8 +149,8 @@ soft: without a key they return 503 and the rest of the dashboard is unaffected.
 
 ```bash
 # from the repo root, so functions/ is picked up alongside dashboard/
-npx wrangler pages secret put GROQ_API_KEY --project-name=naturecipher-drought
-npx wrangler pages deploy dashboard --project-name=naturecipher-drought     --branch=main --commit-dirty=true
+npx wrangler pages secret put GROQ_API_KEY --project-name=anga-pro-drought
+npx wrangler pages deploy dashboard --project-name=anga-pro-drought     --branch=main --commit-dirty=true
 ```
 
 **Confirm the model id before demoing.** Groq retires hosted models on short
@@ -167,7 +167,7 @@ functions themselves.
 Verify after deploying:
 
 ```bash
-curl -s -X POST https://naturecipher-drought.pages.dev/api/chat   -H 'content-type: application/json'   -d '{"messages":[{"role":"user","content":"Which region is flagged?"}]}'
+curl -s -X POST https://anga-pro-drought.pages.dev/api/chat   -H 'content-type: application/json'   -d '{"messages":[{"role":"user","content":"Which region is flagged?"}]}'
 ```
 
 A 503 means the secret is missing. A 502 naming a model id means `GROQ_MODEL`
