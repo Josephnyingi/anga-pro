@@ -15,7 +15,7 @@
 <table>
 <tr>
 <td width="50%"><img src="docs/assets/demo-months.gif" alt="Scrubbing September to November"><br><sub><b>Scrub the month.</b> October turns ASAL North red — four counties, three months ahead, from a weather forecast alone.</sub></td>
-<td width="50%"><img src="docs/assets/demo-threshold.gif" alt="Raising the decision threshold"><br><sub><b>Move the threshold.</b> At 0.35 the signal is gone. The decision changed; the forecast did not.</sub></td>
+<td width="50%"><img src="docs/assets/demo-threshold.gif" alt="Raising the decision threshold"><br><sub><b>Move the threshold.</b> At 0.65, October's signal clears — though Eastern's September spike (0.934) still stands elsewhere in the issue. The decision changed; the forecast did not.</sub></td>
 </tr>
 </table>
 
