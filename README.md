@@ -183,7 +183,7 @@ AWS S3/EC2 · MapLibre GL · Cloudflare Pages + Pages Functions · Groq
 
 ## Team
 
-**Nature Cipher** — Nairobi, Kenya. NVIDIA Inception · 500 Global Pre-Acceleration.
+**Joseph Nyingi** — Nairobi, Kenya.
 
 ## Licence
 
