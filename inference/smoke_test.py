@@ -31,7 +31,7 @@ def smoke_test(tolerance: float = DEFAULT_TOLERANCE) -> bool:
     tolerance of the reference values.
     """
     print("=" * 60)
-    print("  NatureCipher Drought Pipeline -- Smoke Test")
+    print("  Anga Pro Drought Pipeline -- Smoke Test")
     print("=" * 60)
 
     # Load reference

@@ -368,7 +368,7 @@ def print_summary(results: Dict, year: int):
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    parser = argparse.ArgumentParser(description="NatureCipher drought forecast runner")
+    parser = argparse.ArgumentParser(description="Anga Pro drought forecast runner")
     parser.add_argument("--retrospective", action="store_true",
                         help="Use historical ERA5 data instead of SEAS5 GRIB")
     parser.add_argument("--year", type=int, default=2026,
